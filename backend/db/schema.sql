@@ -73,12 +73,22 @@ CREATE INDEX notifications_user_idx ON notifications (user_id, is_read);
 -- The feed reads one user's notifications newest-first; this index serves it.
 CREATE INDEX notifications_user_created_idx ON notifications (user_id, created_at DESC);
 
+-- A report is about a trainee's progress on a PLAN, not on one assignment, so a
+-- plan that reaches a trainee both directly and through a cohort still has a
+-- single history. Many reports per trainee+plan are allowed: each is an update.
 CREATE TABLE progress_reports (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  assignment_id uuid NOT NULL REFERENCES plan_assignments(id) ON DELETE CASCADE,
-  trainee_id    uuid NOT NULL REFERENCES users(id),
-  status        report_status NOT NULL,
-  notes         text,
-  submitted_at  timestamptz NOT NULL DEFAULT now()
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id      uuid NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+  trainee_id   uuid NOT NULL REFERENCES users(id),
+  status       report_status NOT NULL,
+  notes        text,
+  submitted_at timestamptz NOT NULL DEFAULT now(),
+  -- A blocked trainee must say what is blocking them.
+  CONSTRAINT blocked_needs_notes CHECK (status <> 'blocked' OR length(btrim(coalesce(notes, ''))) > 0)
 );
-CREATE INDEX reports_assignment_idx ON progress_reports (assignment_id, trainee_id);
+-- "Latest report per trainee+plan" is the hot query (dashboard, /my/plans).
+CREATE INDEX reports_trainee_plan_idx ON progress_reports (trainee_id, plan_id, submitted_at DESC);
+CREATE INDEX reports_plan_idx ON progress_reports (plan_id, submitted_at DESC);
+-- "Done" is final: at most one done report per trainee+plan, even if two
+-- submissions arrive at the same moment.
+CREATE UNIQUE INDEX reports_one_done_unique ON progress_reports (trainee_id, plan_id) WHERE status = 'done';

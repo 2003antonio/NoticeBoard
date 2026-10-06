@@ -31,6 +31,7 @@ INSERT INTO notifications (user_id, message, plan_id)
   FROM users u, plans p
   WHERE u.role = 'trainee' AND p.title = 'Week 1: Onboarding';
 
-INSERT INTO progress_reports (assignment_id, trainee_id, status, notes)
-  SELECT a.id, u.id, 'on_track', 'Finished setup, starting intro modules'
-  FROM plan_assignments a, users u WHERE u.email = 'user@noticeboard.test';
+INSERT INTO progress_reports (plan_id, trainee_id, status, notes)
+  SELECT p.id, u.id, 'on_track', 'Finished setup, starting intro modules'
+  FROM plans p, users u
+  WHERE p.title = 'Week 1: Onboarding' AND u.email = 'user@noticeboard.test';

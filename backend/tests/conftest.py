@@ -85,6 +85,10 @@ def clean_test_data():
         # Safety net: any notification still pointing at a test user would block
         # the user delete below (notifications.user_id has no cascade).
         conn.execute(
+            "DELETE FROM progress_reports WHERE trainee_id IN "
+            "(SELECT id FROM users WHERE email LIKE 'test-%@noticeboard.test')"
+        )
+        conn.execute(
             "DELETE FROM notifications WHERE user_id IN "
             "(SELECT id FROM users WHERE email LIKE 'test-%@noticeboard.test')"
         )

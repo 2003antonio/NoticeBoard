@@ -81,6 +81,9 @@ class MyPlanOut(BaseModel):
     due_date: date | None = None
     # "direct" when assigned straight to me, otherwise the cohort's name.
     source: str
+    # My most recent progress report on this plan (None until I submit one).
+    latest_status: str | None = None
+    last_report_at: datetime | None = None
 
 
 class MyPlanList(BaseModel):

@@ -41,7 +41,7 @@ Rule: each layer only calls the one below it. Routers never write SQL; repositor
 | `plans` | A training plan | created by a manager; title, description, due date |
 | `plan_assignments` | Plan given to a cohort OR a single trainee | exactly one target; no duplicate assignment |
 | `notifications` | Messages shown to a trainee | user, message, read flag, optional `plan_id` link |
-| `progress_reports` | Trainee updates | assignment, trainee, status, notes |
+| `progress_reports` | Trainee updates on a plan | plan, trainee, status (on_track, blocked, done), notes; blocked needs notes; at most one `done` per trainee and plan |
 
 ## API endpoints
 
@@ -65,13 +65,15 @@ Done:
 | POST | /plans/{id}/assignments | manager | assign to a cohort OR one trainee; notifies recipients in the same transaction |
 | GET | /notifications | any logged-in user | my notifications, newest first, paginated, `unread_only`, `unread_count` |
 | PATCH | /notifications/{id}/read | owner | mark my notification read (idempotent; 404 for anyone else's) |
-| GET | /my/plans | trainee | plans assigned to me, directly or via a cohort, each once |
+| GET | /my/plans | trainee | plans assigned to me, directly or via a cohort, each once, with my latest report status |
+| POST | /my/plans/{id}/reports | trainee | submit a progress update on one of my plans (404 if it is not mine; 409 once marked done) |
+| GET | /my/plans/{id}/reports | trainee | my own update history for a plan, newest first (paginated) |
+| GET | /plans/{id}/reports | manager | every trainee's updates on a plan, newest first (paginated, optional `trainee_id` filter) |
 
 Planned:
 
 | Method | Path | Who | What |
 |---|---|---|---|
-| POST | /reports | trainee | submit progress |
 | GET | /dashboard | manager | per-cohort progress, late and missing reports |
 
 ### Notification fan-out and the "once" rules
@@ -91,6 +93,14 @@ Planned:
 - A trainee assigned the same plan both directly and via a cohort does get two
   notifications; the future dashboard de-duplicates by (trainee, plan).
 
+## Progress reports: the rules
+
+- A report belongs to a **trainee and a plan**, not to one assignment. A plan can reach a trainee several ways (directly, through two cohorts); they still have one history, and the dashboard will count them once per (trainee, plan).
+- Status is `on_track`, `blocked` or `done`. `blocked` must include notes saying what is blocking them (checked by the API and again by the database).
+- **Done is final.** After a `done` report, further reports on that plan get a 409. The database also allows only one `done` per trainee and plan, so two submissions at the same instant cannot both win.
+- A trainee can only report on a plan that reaches them. A plan that does not exist, and a plan that belongs to someone else, return the same 404 so nothing is revealed.
+- Late and missing (used by the dashboard): a trainee is **missing** when they are not done and have not reported in the last 7 days (counted from the assignment if they have never reported). They are **overdue** once the plan's due date has passed without a `done` report.
+
 ## Scaling notes
 
 - Login tokens are stateless, so many copies of the API can run behind a load balancer
@@ -105,7 +115,7 @@ Planned:
 2. Login + role checks (done)
 3. Trainees + cohorts (done)
 4. Plans + assignment + notifications (done)
-5. Progress reports
+5. Progress reports (done)
 6. Dashboard
 7. React screens per role
 8. Postman collection + final docs

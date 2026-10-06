@@ -70,7 +70,7 @@ def notify_trainee(conn, plan_id, trainee_id) -> int:
 
 def my_plans(conn, trainee_id):
     """Every plan assigned to this trainee, directly or through any cohort they
-    belong to, each plan exactly once.
+    belong to, each plan exactly once, with their latest progress report.
 
     A plan can reach a trainee several ways. We pick a single source with a fixed
     rule so the answer is stable: a direct assignment wins; otherwise the
@@ -79,7 +79,9 @@ def my_plans(conn, trainee_id):
     """
     return conn.execute(
         """
-        SELECT id, title, description, due_date, source FROM (
+        SELECT chosen.id, chosen.title, chosen.description, chosen.due_date, chosen.source,
+               r.status AS latest_status, r.submitted_at AS last_report_at
+        FROM (
           SELECT DISTINCT ON (plan_id)
                  plan_id AS id, title, description, due_date, source
           FROM (
@@ -98,7 +100,13 @@ def my_plans(conn, trainee_id):
           ) reached
           ORDER BY plan_id, prio, sort_name
         ) chosen
-        ORDER BY due_date NULLS LAST, lower(title), id
+        -- Latest report per plan: one indexed lookup each (reports_trainee_plan_idx).
+        LEFT JOIN LATERAL (
+          SELECT status, submitted_at FROM progress_reports pr
+          WHERE pr.trainee_id = %s AND pr.plan_id = chosen.id
+          ORDER BY pr.submitted_at DESC, pr.id DESC LIMIT 1
+        ) r ON true
+        ORDER BY chosen.due_date NULLS LAST, lower(chosen.title), chosen.id
         """,
-        (trainee_id, trainee_id),
+        (trainee_id, trainee_id, trainee_id),
     ).fetchall()
