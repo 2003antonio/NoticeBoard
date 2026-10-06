@@ -52,7 +52,7 @@ Requirements: Python 3.11+, PostgreSQL 16+.
 - [x] Plans + assignments
 - [x] Notifications (feed, unread count, late-joiner catch-up)
 - [x] Progress reports
-- [ ] Manager dashboard
+- [x] Manager dashboard
 - [ ] React frontend
 - [ ] Postman collection
 - [ ] Architecture.md final

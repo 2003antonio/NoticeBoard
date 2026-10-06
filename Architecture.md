@@ -69,12 +69,16 @@ Done:
 | POST | /my/plans/{id}/reports | trainee | submit a progress update on one of my plans (404 if it is not mine; 409 once marked done) |
 | GET | /my/plans/{id}/reports | trainee | my own update history for a plan, newest first (paginated) |
 | GET | /plans/{id}/reports | manager | every trainee's updates on a plan, newest first (paginated, optional `trainee_id` filter) |
+| GET | /dashboard/summary | manager | one object of counts over all recipient pairs (done, blocked, overdue, missing, needs_attention, completion %) |
+| GET | /dashboard/cohorts | manager | one row per cohort with its pair counts and completion % (paginated) |
+| GET | /dashboard/trainees | manager | the drill-down list of (trainee, plan) pairs with flags; filters `cohort_id`, `plan_id`, `trainee_id`, `attention_only`, `status` (paginated) |
 
 Planned:
 
 | Method | Path | Who | What |
 |---|---|---|---|
-| GET | /dashboard | manager | per-cohort progress, late and missing reports |
+| — | React screens per role | all | the frontend |
+| — | Postman collection | — | final docs |
 
 ### Notification fan-out and the "once" rules
 
@@ -101,6 +105,22 @@ Planned:
 - A trainee can only report on a plan that reaches them. A plan that does not exist, and a plan that belongs to someone else, return the same 404 so nothing is revealed.
 - Late and missing (used by the dashboard): a trainee is **missing** when they are not done and have not reported in the last 7 days (counted from the assignment if they have never reported). They are **overdue** once the plan's due date has passed without a `done` report.
 
+## Dashboard: how the numbers are computed
+
+The dashboard measures **recipient pairs**. A pair is one (active trainee, plan) the trainee receives — directly, or through any cohort they belong to — counted **once** even if the plan reaches them several ways. Deactivated trainees are excluded everywhere.
+
+Every number comes from one shared SQL definition of a pair, so the three endpoints can never disagree. For each pair we work out:
+
+- **latest_status** — the status of their most recent report on that plan, or `no_report` if they have never reported.
+- **done** — their latest report is `done`. Done is final: a done pair is never overdue, missing or needing attention.
+- **overdue** — the plan's due date has passed and the pair is not done.
+- **missing** — not done, and there has been no activity for more than **7 days** (the one check-in window, `CHECKIN_DAYS`). "Activity" is their last report; if they have never reported, the clock starts at the **baseline time** — the earliest moment the plan reached them. A trainee who joined a cohort after a plan was assigned is not counted as late for the time before they joined.
+- **needs_attention** — blocked, overdue or missing. Flags are independent: a pair can be blocked *and* overdue.
+
+**One global classification, reused for cohort rows.** A trainee in two cohorts is counted once in the summary and the drill-down, but once in **each** cohort's row (so a cohort row sums its own members). Because the same global classification is reused, the baseline is always the earliest route across all of a trainee's cohorts. So a trainee who got a plan through Cohort A long ago (and never reported) shows as **missing in both Cohort A's and Cohort B's rows** even if they joined Cohort B only yesterday — they already had the plan, so their clock started with Cohort A. They are still counted once in the summary.
+
+**completion_percent** is `done / total_pairs × 100`, rounded to one decimal, and `0` when there are no pairs. Filters that name an unknown cohort, plan or trainee simply return an empty list (not an error); a malformed id or an unknown `status` value is a 400.
+
 ## Scaling notes
 
 - Login tokens are stateless, so many copies of the API can run behind a load balancer
@@ -108,6 +128,7 @@ Planned:
 - Planned AWS shape: React on S3 + CloudFront, API on Lambda or a container, PostgreSQL on RDS
 - The login rate limiter is in memory (fine for one server); with several servers it moves to Redis or the API gateway
 - Notification fan-out is synchronous set-based SQL today; at larger scale it would move to a queue (for example SQS) so the API responds immediately and a background worker delivers the notifications.
+- The dashboard recomputes the recipient pairs on every request from set-based SQL. At ~5,000 trainees every endpoint stays well under ~300 ms; if the pair count grew by another order of magnitude the shared pair definition would become a **materialized view** refreshed on a short schedule (the API already reads it as one relation, so only the refresh would be added).
 
 ## Build order
 
@@ -116,6 +137,6 @@ Planned:
 3. Trainees + cohorts (done)
 4. Plans + assignment + notifications (done)
 5. Progress reports (done)
-6. Dashboard
+6. Dashboard (done)
 7. React screens per role
 8. Postman collection + final docs
