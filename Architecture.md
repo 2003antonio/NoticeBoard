@@ -40,7 +40,7 @@ Rule: each layer only calls the one below it. Routers never write SQL; repositor
 | `cohort_members` | Which trainee is in which cohort | pair is unique: no duplicate membership |
 | `plans` | A training plan | created by a manager; title, description, due date |
 | `plan_assignments` | Plan given to a cohort OR a single trainee | exactly one target; no duplicate assignment |
-| `notifications` | Messages shown to a trainee | user, message, read flag |
+| `notifications` | Messages shown to a trainee | user, message, read flag, optional `plan_id` link |
 | `progress_reports` | Trainee updates | assignment, trainee, status, notes |
 
 ## API endpoints
@@ -57,20 +57,39 @@ Done:
 | GET | /trainees | hr, manager | list trainees (paginated) |
 | POST | /cohorts | hr, manager | create cohort (409 if name exists, any capitalization) |
 | GET | /cohorts | hr, manager | list cohorts with member counts (paginated) |
-| POST | /cohorts/{id}/members | hr, manager | add a trainee to a cohort (409 if already in it) |
+| POST | /cohorts/{id}/members | hr, manager | add a trainee to a cohort (409 if already in it); catches a late joiner up on the cohort's existing plans |
 | GET | /cohorts/{id}/members | hr, manager | list a cohort's members |
+| POST | /plans | manager | create plan (title, optional description and due date) |
+| GET | /plans | manager | list plans (paginated) |
+| GET | /plans/{id} | manager | one plan (404 if missing) |
+| POST | /plans/{id}/assignments | manager | assign to a cohort OR one trainee; notifies recipients in the same transaction |
+| GET | /notifications | any logged-in user | my notifications, newest first, paginated, `unread_only`, `unread_count` |
+| PATCH | /notifications/{id}/read | owner | mark my notification read (idempotent; 404 for anyone else's) |
+| GET | /my/plans | trainee | plans assigned to me, directly or via a cohort, each once |
 
 Planned:
 
 | Method | Path | Who | What |
 |---|---|---|---|
-| POST | /plans | manager | create plan |
-| POST | /plans/{id}/assign | manager | assign to a cohort or a trainee; notifies them |
-| GET | /notifications | trainee | my notifications |
-| PATCH | /notifications/{id}/read | trainee | mark read |
-| GET | /my/plans | trainee | plans assigned to me |
 | POST | /reports | trainee | submit progress |
 | GET | /dashboard | manager | per-cohort progress, late and missing reports |
+
+### Notification fan-out and the "once" rules
+
+- Assigning a plan to a cohort notifies every **active** member in one set-based
+  `INSERT ... SELECT`, never a Python loop, so a cohort of thousands is still one query.
+- Adding a member to a cohort catches them up on plans already assigned to it (one
+  set-based insert), in the same transaction as the membership. Assigning a plan and
+  adding a member to the same cohort first take a `FOR UPDATE` lock on the cohort row,
+  so they run as turns and a new member is never skipped by a concurrent fan-out.
+- The notification message is built in SQL in one shared place, so all three paths
+  (cohort assign, solo assign, late joiner) produce the identical text.
+- `/my/plans` shows each plan once. If a plan reaches a trainee more than one way, a
+  **direct** assignment wins; otherwise the **alphabetically-first cohort name** wins.
+  `/my/plans` is intentionally **not paginated** — one trainee's plan count is naturally
+  bounded.
+- A trainee assigned the same plan both directly and via a cohort does get two
+  notifications; the future dashboard de-duplicates by (trainee, plan).
 
 ## Scaling notes
 
@@ -78,13 +97,14 @@ Planned:
 - Config comes from environment variables, so the same code runs locally and on AWS
 - Planned AWS shape: React on S3 + CloudFront, API on Lambda or a container, PostgreSQL on RDS
 - The login rate limiter is in memory (fine for one server); with several servers it moves to Redis or the API gateway
+- Notification fan-out is synchronous set-based SQL today; at larger scale it would move to a queue (for example SQS) so the API responds immediately and a background worker delivers the notifications.
 
 ## Build order
 
 1. Schema + seed data (done)
 2. Login + role checks (done)
 3. Trainees + cohorts (done)
-4. Plans + assignment + notifications
+4. Plans + assignment + notifications (done)
 5. Progress reports
 6. Dashboard
 7. React screens per role

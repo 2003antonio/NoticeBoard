@@ -64,9 +64,14 @@ CREATE TABLE notifications (
   user_id    uuid NOT NULL REFERENCES users(id),
   message    text NOT NULL,
   is_read    boolean NOT NULL DEFAULT false,
+  -- Optional link to the plan this notification is about, so the frontend can
+  -- open it. ON DELETE CASCADE: removing a plan clears its notifications too.
+  plan_id    uuid REFERENCES plans(id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX notifications_user_idx ON notifications (user_id, is_read);
+-- The feed reads one user's notifications newest-first; this index serves it.
+CREATE INDEX notifications_user_created_idx ON notifications (user_id, created_at DESC);
 
 CREATE TABLE progress_reports (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

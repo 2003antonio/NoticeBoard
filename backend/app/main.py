@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.core.errors import register_error_handlers
 from app.database import close_pool
-from app.routers import auth, cohorts, health, trainees
+from app.routers import auth, cohorts, health, my, notifications, plans, trainees
 
 
 @asynccontextmanager
@@ -39,3 +39,6 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(trainees.router)
 app.include_router(cohorts.router)
+app.include_router(plans.router)
+app.include_router(notifications.router)
+app.include_router(my.router)

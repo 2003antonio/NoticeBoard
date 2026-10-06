@@ -77,7 +77,17 @@ def clean_test_data():
 
     def wipe():
         conn = psycopg.connect(get_settings().database_url, autocommit=True)
+        # Delete test plans first: their assignments and notifications cascade
+        # (plan_assignments.plan_id and notifications.plan_id are ON DELETE
+        # CASCADE), which also clears assignments that point at test cohorts.
+        conn.execute("DELETE FROM plans WHERE title LIKE 'Test Plan %'")
         conn.execute("DELETE FROM cohorts WHERE name LIKE 'Test Cohort %'")  # members cascade
+        # Safety net: any notification still pointing at a test user would block
+        # the user delete below (notifications.user_id has no cascade).
+        conn.execute(
+            "DELETE FROM notifications WHERE user_id IN "
+            "(SELECT id FROM users WHERE email LIKE 'test-%@noticeboard.test')"
+        )
         conn.execute("DELETE FROM users WHERE email LIKE 'test-%@noticeboard.test'")
         conn.close()
 

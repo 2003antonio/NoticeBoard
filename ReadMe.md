@@ -49,8 +49,8 @@ Requirements: Python 3.11+, PostgreSQL 16+.
 - [x] Login, roles, forced password change
 - [x] Trainee onboarding (HR)
 - [x] Cohorts and members
-- [ ] Plans + assignments
-- [ ] Notifications
+- [x] Plans + assignments
+- [x] Notifications (feed, unread count, late-joiner catch-up)
 - [ ] Progress reports
 - [ ] Manager dashboard
 - [ ] React frontend

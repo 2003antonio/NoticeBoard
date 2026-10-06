@@ -23,8 +23,13 @@ INSERT INTO plan_assignments (plan_id, cohort_id)
   SELECT p.id, c.id FROM plans p, cohorts c
   WHERE p.title = 'Week 1: Onboarding' AND c.name = 'Cohort A';
 
-INSERT INTO notifications (user_id, message)
-  SELECT id, 'New plan assigned: Week 1: Onboarding' FROM users WHERE role = 'trainee';
+-- Mirrors the real fan-out: message text and plan_id match what the app writes.
+INSERT INTO notifications (user_id, message, plan_id)
+  SELECT u.id,
+         'New plan assigned: ' || p.title || ' (due ' || to_char(p.due_date, 'YYYY-MM-DD') || ')',
+         p.id
+  FROM users u, plans p
+  WHERE u.role = 'trainee' AND p.title = 'Week 1: Onboarding';
 
 INSERT INTO progress_reports (assignment_id, trainee_id, status, notes)
   SELECT a.id, u.id, 'on_track', 'Finished setup, starting intro modules'

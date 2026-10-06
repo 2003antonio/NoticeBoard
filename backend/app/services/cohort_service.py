@@ -31,10 +31,18 @@ def add_member(conn, cohort_id, trainee_id) -> None:
     if not trainee["active"]:
         raise AppError(400, "Trainee is deactivated")
 
+    # Serialize with any concurrent plan assignment to this same cohort (see
+    # cohort_repository.lock) so a new member is never skipped by a fan-out.
+    cohort_repository.lock(conn, cohort_id)
+
     try:
         cohort_repository.add_member(conn, cohort_id, trainee_id)
     except UniqueViolation:
         raise AppError(409, "Trainee is already in this cohort")
+
+    # Late-joiner rule: catch the new member up on plans already assigned to this
+    # cohort. Same transaction as the membership insert, so it is all-or-nothing.
+    cohort_repository.notify_existing_plans(conn, cohort_id, trainee_id)
 
 
 def list_members(conn, cohort_id):

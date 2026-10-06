@@ -1,5 +1,7 @@
 """The ONLY place that writes SQL about cohorts and their members."""
 
+from app.repositories.notification_repository import NEW_PLAN_MESSAGE_SQL
+
 
 def create(conn, name: str, created_by):
     return conn.execute(
@@ -23,10 +25,34 @@ def list_with_counts(conn, limit: int, offset: int):
     return items, total
 
 
+def lock(conn, cohort_id) -> None:
+    """Take a row lock on the cohort for the rest of this transaction.
+
+    Adding a member and assigning a plan to the same cohort both grab this lock,
+    so they take turns. Without it, a member added at the very moment a plan is
+    being assigned could be missed by the assignment's fan-out AND find no plan
+    yet when their own late-joiner catch-up runs -- and never get notified.
+    """
+    conn.execute("SELECT id FROM cohorts WHERE id = %s FOR UPDATE", (cohort_id,))
+
+
 def add_member(conn, cohort_id, trainee_id) -> None:
     conn.execute(
         "INSERT INTO cohort_members (cohort_id, trainee_id) VALUES (%s, %s)", (cohort_id, trainee_id)
     )
+
+
+def notify_existing_plans(conn, cohort_id, trainee_id) -> int:
+    """Late joiner: one notification for each plan ALREADY assigned to this
+    cohort, in one set-based insert. Returns how many were created."""
+    cur = conn.execute(
+        f"""INSERT INTO notifications (user_id, message, plan_id)
+            SELECT %s, {NEW_PLAN_MESSAGE_SQL}, p.id
+            FROM plan_assignments a JOIN plans p ON p.id = a.plan_id
+            WHERE a.cohort_id = %s""",
+        (trainee_id, cohort_id),
+    )
+    return cur.rowcount
 
 
 def list_members(conn, cohort_id):
