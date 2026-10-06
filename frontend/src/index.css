@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* App-wide defaults. Neutral slate background with a blue accent. */
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+}

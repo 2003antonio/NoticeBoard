@@ -35,6 +35,19 @@ Requirements: Python 3.11+, PostgreSQL 16+.
 4. `uvicorn app.main:app --reload` then open http://localhost:8000/health (interactive docs at /docs).
 5. `pytest` runs the tests against the database in `DATABASE_URL`.
 
+## Run the frontend locally (Windows PowerShell)
+
+Requirements: Node.js 20+ (the project was built on Node 24). Start the backend first (above).
+
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env   # VITE_API_URL defaults to http://localhost:8000
+npm run dev                   # opens http://localhost:5173
+```
+
+Other commands: `npm test` (Vitest unit tests), `npm run build` (static files into `frontend\dist`), `npm run preview` (serve the built files).
+
 ## Demo logins (dev seed data only)
 
 | Role | Email | Password |
@@ -53,6 +66,6 @@ Requirements: Python 3.11+, PostgreSQL 16+.
 - [x] Notifications (feed, unread count, late-joiner catch-up)
 - [x] Progress reports
 - [x] Manager dashboard
-- [ ] React frontend
+- [x] React frontend
 - [ ] Postman collection
 - [ ] Architecture.md final

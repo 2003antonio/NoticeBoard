@@ -77,7 +77,6 @@ Planned:
 
 | Method | Path | Who | What |
 |---|---|---|---|
-| — | React screens per role | all | the frontend |
 | — | Postman collection | — | final docs |
 
 ### Notification fan-out and the "once" rules
@@ -121,6 +120,44 @@ Every number comes from one shared SQL definition of a pair, so the three endpoi
 
 **completion_percent** is `done / total_pairs × 100`, rounded to one decimal, and `0` when there are no pairs. Filters that name an unknown cohort, plan or trainee simply return an empty list (not an error); a malformed id or an unknown `status` value is a 400.
 
+## Frontend (React)
+
+The frontend lives in `frontend/` and is a plain-JavaScript React app built with
+Vite, styled with Tailwind CSS v4, routed with React Router. It builds to static
+files (`frontend/dist`) so it can be served from S3 + CloudFront with no Node
+server. The API base URL comes from `VITE_API_URL` (see `frontend/.env.example`).
+
+### Folder layout (mirrors the backend's layers)
+
+| Folder | Job |
+|---|---|
+| `src/api/` | `client.js` is the ONE place that calls `fetch`: it attaches the token, turns every backend error into one shape, and reacts to auth failures. One small file per area (`auth`, `plans`, `dashboard`, …) calls the client. Components never call `fetch`. |
+| `src/context/` | `AuthContext` holds the logged-in user and the login/logout/change-password actions. |
+| `src/components/` | Shared pieces: `ProtectedRoute`, `AppShell`, `Table`, `Pagination`, `StatusBadge`, `ErrorMessage`, `Spinner`, `EmptyState`, `FormField`, `Button`, `PaginatedPicker`, `NotificationBell`. |
+| `src/pages/` | One folder per role area (`trainee/`, `hr/`, `manager/`) plus shared pages (Login, ChangePassword, Notifications, NotFound). |
+| `src/hooks/`, `src/lib/` | A small data-loading hook (ignores stale responses) and tiny helpers (date formatting, role→home map). |
+
+### How the frontend talks to the API
+
+Every request goes through `src/api/client.js`. It reads the current token from
+`AuthContext` and adds `Authorization: Bearer …`. It parses the backend's
+`{error, code, details}` into one `ApiError` the whole app understands. Three
+cases are handled centrally so no screen has to: a **401 on an authenticated
+call** logs the user out; a **401 on the login call** (no token was sent) is left
+for the login form to show as "wrong email or password"; and a **403 with code
+`PASSWORD_CHANGE_REQUIRED`** flags the user so `ProtectedRoute` sends them to the
+change-password page instead of showing an error. The server remains the real
+guard — hiding a nav link or a route is only convenience.
+
+### Token storage tradeoff
+
+The token is kept in memory and mirrored to `sessionStorage`: a page refresh
+keeps the user signed in, but closing the tab ends the session. `sessionStorage`
+(not `localStorage`) limits how long a stolen token could live and avoids sharing
+the session across tabs; the cost is that the user signs in again after closing
+the tab. The password is never stored or logged, and the one-time temporary
+password is held only in the onboarding screen's state and dropped when it unmounts.
+
 ## Scaling notes
 
 - Login tokens are stateless, so many copies of the API can run behind a load balancer
@@ -138,5 +175,5 @@ Every number comes from one shared SQL definition of a pair, so the three endpoi
 4. Plans + assignment + notifications (done)
 5. Progress reports (done)
 6. Dashboard (done)
-7. React screens per role
+7. React screens per role (done)
 8. Postman collection + final docs
