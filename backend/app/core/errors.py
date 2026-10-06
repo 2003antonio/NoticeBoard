@@ -31,7 +31,11 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
-        return JSONResponse(_body("Invalid request"), status_code=400)
+        details = [
+            {"field": str(e["loc"][-1]) if e.get("loc") else "", "message": str(e.get("msg", "")).removeprefix("Value error, ")}
+            for e in exc.errors()
+        ]
+        return JSONResponse({**_body("Invalid request"), "details": details}, status_code=400)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException):

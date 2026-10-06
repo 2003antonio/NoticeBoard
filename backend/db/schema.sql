@@ -24,10 +24,12 @@ CREATE UNIQUE INDEX users_email_unique ON users (lower(email));
 
 CREATE TABLE cohorts (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text NOT NULL UNIQUE,
+  name       text NOT NULL,
   created_by uuid NOT NULL REFERENCES users(id),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Case-insensitive: "Cohort A" and "cohort a" are the same cohort.
+CREATE UNIQUE INDEX cohorts_name_unique ON cohorts (lower(name));
 
 CREATE TABLE cohort_members (
   cohort_id  uuid NOT NULL REFERENCES cohorts(id) ON DELETE CASCADE,

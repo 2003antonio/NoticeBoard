@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.core.errors import register_error_handlers
 from app.database import close_pool
-from app.routers import auth, health
+from app.routers import auth, cohorts, health, trainees
 
 
 @asynccontextmanager
@@ -37,3 +37,5 @@ async def security_headers(request, call_next):
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(trainees.router)
+app.include_router(cohorts.router)

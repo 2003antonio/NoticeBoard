@@ -36,7 +36,7 @@ Rule: each layer only calls the one below it. Routers never write SQL; repositor
 | Table | Purpose | Key rules |
 |---|---|---|
 | `users` | Everyone who logs in | `email` unique (case-insensitive); role is hr, manager or trainee |
-| `cohorts` | A group of trainees | `name` unique |
+| `cohorts` | A group of trainees | `name` unique (case-insensitive) |
 | `cohort_members` | Which trainee is in which cohort | pair is unique: no duplicate membership |
 | `plans` | A training plan | created by a manager; title, description, due date |
 | `plan_assignments` | Plan given to a cohort OR a single trainee | exactly one target; no duplicate assignment |
@@ -53,15 +53,17 @@ Done:
 | POST | /auth/login | anyone | get a token |
 | GET | /auth/me | logged in | who am I |
 | POST | /auth/change-password | logged in | change my password |
+| POST | /trainees | hr | onboard a trainee (409 if email exists); returns a one-time temporary password |
+| GET | /trainees | hr, manager | list trainees (paginated) |
+| POST | /cohorts | hr, manager | create cohort (409 if name exists, any capitalization) |
+| GET | /cohorts | hr, manager | list cohorts with member counts (paginated) |
+| POST | /cohorts/{id}/members | hr, manager | add a trainee to a cohort (409 if already in it) |
+| GET | /cohorts/{id}/members | hr, manager | list a cohort's members |
 
 Planned:
 
 | Method | Path | Who | What |
 |---|---|---|---|
-| POST | /trainees | hr | onboard a trainee (409 if email exists), returns a temporary password |
-| GET | /trainees | hr, manager | list trainees |
-| POST | /cohorts | hr, manager | create cohort |
-| POST | /cohorts/{id}/members | hr, manager | add trainee to cohort |
 | POST | /plans | manager | create plan |
 | POST | /plans/{id}/assign | manager | assign to a cohort or a trainee; notifies them |
 | GET | /notifications | trainee | my notifications |
@@ -81,7 +83,7 @@ Planned:
 
 1. Schema + seed data (done)
 2. Login + role checks (done)
-3. Trainees + cohorts
+3. Trainees + cohorts (done)
 4. Plans + assignment + notifications
 5. Progress reports
 6. Dashboard

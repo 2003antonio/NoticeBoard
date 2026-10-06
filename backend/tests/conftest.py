@@ -48,3 +48,39 @@ def temp_user():
     yield SimpleNamespace(make=make, conn=conn, email=TEMP_EMAIL, password=TEMP_PASSWORD)
     conn.execute("DELETE FROM users WHERE email = %s", (TEMP_EMAIL,))
     conn.close()
+
+
+def _login_token(client, email, password):
+    r = client.post("/auth/login", json={"email": email, "password": password})
+    assert r.status_code == 200, r.text
+    return r.json()["token"]
+
+
+@pytest.fixture
+def hr_headers(client):
+    return {"Authorization": "Bearer " + _login_token(client, "humanresource@noticeboard.test", "humanresource123")}
+
+
+@pytest.fixture
+def manager_headers(client):
+    return {"Authorization": "Bearer " + _login_token(client, "admin@noticeboard.test", "admin123")}
+
+
+@pytest.fixture
+def trainee_headers(client):
+    return {"Authorization": "Bearer " + _login_token(client, "user@noticeboard.test", "user123")}
+
+
+@pytest.fixture(autouse=True)
+def clean_test_data():
+    """Removes anything the tests created. Demo data is never touched."""
+
+    def wipe():
+        conn = psycopg.connect(get_settings().database_url, autocommit=True)
+        conn.execute("DELETE FROM cohorts WHERE name LIKE 'Test Cohort %'")  # members cascade
+        conn.execute("DELETE FROM users WHERE email LIKE 'test-%@noticeboard.test'")
+        conn.close()
+
+    wipe()
+    yield
+    wipe()

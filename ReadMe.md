@@ -47,8 +47,9 @@ Requirements: Python 3.11+, PostgreSQL 16+.
 
 - [x] Database schema + seed data
 - [x] Login, roles, forced password change
-- [ ] Trainee onboarding (HR)
-- [ ] Cohorts + plans + assignments
+- [x] Trainee onboarding (HR)
+- [x] Cohorts and members
+- [ ] Plans + assignments
 - [ ] Notifications
 - [ ] Progress reports
 - [ ] Manager dashboard
