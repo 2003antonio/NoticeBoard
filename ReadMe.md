@@ -66,6 +66,7 @@ Other commands: `npm test` (Vitest unit tests), `npm run build` (static files in
 - [x] Notifications (feed, unread count, late-joiner catch-up)
 - [x] Progress reports
 - [x] Manager dashboard
-- [x] React frontend
+- [x] React frontend (editorial design, light and dark)
+- [x] Smart pickers and clickable rows (cohort plans, only-available choices)
 - [ ] Postman collection
 - [ ] Architecture.md final

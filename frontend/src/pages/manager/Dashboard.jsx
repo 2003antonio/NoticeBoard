@@ -18,7 +18,7 @@ import { SkeletonTable } from "../../components/Skeleton";
 import Spinner from "../../components/Spinner";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import Table, { Row } from "../../components/Table";
+import Table, { RowLink, StretchedLink } from "../../components/Table";
 
 const PAGE = 20;
 
@@ -97,8 +97,10 @@ function CohortSection() {
         <>
           <Table head={["Cohort", "Members", "Plans", "Pairs", "Blocked", "Overdue", "Missing", "Attention", "Completion"]}>
             {data.items.map((c) => (
-              <Row key={c.cohort_id}>
-                <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
+              <RowLink key={c.cohort_id} to={`/cohorts/${c.cohort_id}`}>
+                <td className="px-4 py-3">
+                  <StretchedLink to={`/cohorts/${c.cohort_id}`} className="text-accent">{c.name}</StretchedLink>
+                </td>
                 <td className="px-4 py-3 tnum text-muted">{c.member_count}</td>
                 <td className="px-4 py-3 tnum text-muted">{c.plan_count}</td>
                 <td className="px-4 py-3 tnum text-muted">{c.total_pairs}</td>
@@ -112,7 +114,7 @@ function CohortSection() {
                     <span className="tnum text-xs text-muted">{c.completion_percent}%</span>
                   </div>
                 </td>
-              </Row>
+              </RowLink>
             ))}
           </Table>
           <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />
@@ -194,18 +196,20 @@ function DrilldownSection() {
         <>
           <Table head={["Trainee", "Plan", "Due", "Status", "Last activity", "Source", "Flags"]}>
             {data.items.map((r) => (
-              <Row key={`${r.trainee_id}-${r.plan_id}`} className={r.needs_attention ? "bg-accent/5" : ""}>
+              <RowLink key={`${r.trainee_id}-${r.plan_id}`} to={`/plans/${r.plan_id}`} className={r.needs_attention ? "bg-accent/5" : ""}>
                 <td className="px-4 py-3">
                   <div className="font-medium text-ink">{r.trainee_name}</div>
                   <div className="kicker">{r.trainee_email}</div>
                 </td>
-                <td className="px-4 py-3 text-ink">{r.plan_title}</td>
+                <td className="px-4 py-3">
+                  <StretchedLink to={`/plans/${r.plan_id}`}>{r.plan_title}</StretchedLink>
+                </td>
                 <td className="px-4 py-3 tnum text-muted">{formatDate(r.due_date)}</td>
                 <td className="px-4 py-3"><StatusBadge status={r.latest_status} /></td>
                 <td className="px-4 py-3 tnum whitespace-nowrap text-muted">{r.last_report_at ? formatDateTime(r.last_report_at) : "—"}</td>
                 <td className="px-4 py-3 text-muted">{r.source}</td>
                 <td className="px-4 py-3 text-xs"><Flags r={r} /></td>
-              </Row>
+              </RowLink>
             ))}
           </Table>
           <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />

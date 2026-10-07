@@ -11,8 +11,8 @@ def create_cohort(conn, name: str, created_by):
         raise AppError(409, "A cohort with this name already exists")
 
 
-def list_cohorts(conn, limit: int, offset: int):
-    return cohort_repository.list_with_counts(conn, limit, offset)
+def list_cohorts(conn, limit: int, offset: int, not_assigned_plan=None, q=None):
+    return cohort_repository.list_with_counts(conn, limit, offset, not_assigned_plan, q)
 
 
 def _require_cohort(conn, cohort_id):
@@ -48,3 +48,14 @@ def add_member(conn, cohort_id, trainee_id) -> None:
 def list_members(conn, cohort_id):
     _require_cohort(conn, cohort_id)
     return cohort_repository.list_members(conn, cohort_id)
+
+
+def list_cohort_plans(conn, cohort_id, limit: int, offset: int):
+    """Plans assigned to this cohort, each tagged with how many active members
+    get it (the same count the next assignment would notify)."""
+    _require_cohort(conn, cohort_id)
+    items, total = cohort_repository.list_cohort_plans(conn, cohort_id, limit, offset)
+    member_count = cohort_repository.active_member_count(conn, cohort_id)
+    # One count query for the whole cohort, attached to each row -- not per-row (no N+1).
+    items = [{**dict(p), "active_member_count": member_count} for p in items]
+    return items, total

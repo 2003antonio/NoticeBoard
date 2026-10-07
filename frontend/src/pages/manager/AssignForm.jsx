@@ -18,6 +18,9 @@ export default function AssignForm({ planId, onAssigned }) {
   const [formError, setFormError] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // Bumped after each successful assign to remount the pickers so they re-fetch
+  // the now-smaller "not yet assigned" lists (the just-assigned target drops off).
+  const [resetKey, setResetKey] = useState(0);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -39,6 +42,7 @@ export default function AssignForm({ planId, onAssigned }) {
       const result = await assignPlan(planId, body);
       setCohortId(null);
       setTraineeId(null);
+      setResetKey((k) => k + 1); // refresh the pickers
       toast.show(`Assigned — notified ${result.notified} ${result.notified === 1 ? "person" : "people"}`);
       if (onAssigned) onAssigned();
     } catch (err) {
@@ -52,26 +56,35 @@ export default function AssignForm({ planId, onAssigned }) {
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div className="grid gap-4 sm:grid-cols-2">
         <PaginatedPicker
+          key={`cohort-${resetKey}`}
           legend="Assign to a cohort"
           name="assign-cohort"
-          load={listCohorts}
+          // Only cohorts that don't already have this plan.
+          load={(limit, offset, q) => listCohorts(limit, offset, { notAssignedPlan: planId, q })}
           getId={(c) => c.id}
-          getLabel={(c) => `${c.name} (${c.member_count} members)`}
+          getLabel={(c) => `${c.name} (${c.member_count} ${c.member_count === 1 ? "member" : "members"})`}
           selectedId={cohortId}
           onSelect={setCohortId}
+          emptyMessage="Every cohort already has this plan."
         />
         <PaginatedPicker
+          key={`trainee-${resetKey}`}
           legend="…or a single trainee"
           name="assign-trainee"
-          load={listTrainees}
+          // Only active trainees not already assigned this plan directly.
+          load={(limit, offset, q) => listTrainees(limit, offset, { notAssignedPlan: planId, q })}
           getId={(t) => t.id}
           getLabel={(t) => `${t.name} — ${t.email}`}
           selectedId={traineeId}
           onSelect={setTraineeId}
+          emptyMessage="No trainees left to assign directly."
         />
       </div>
 
-      <p className="text-xs text-muted">Pick exactly one: a cohort or a single trainee.</p>
+      <p className="text-xs text-muted">
+        Pick exactly one: a cohort or a single trainee. A trainee already in an assigned cohort
+        still receives this plan — assign directly only if you also want it outside that cohort.
+      </p>
 
       {formError && (
         <p role="alert" className="text-sm font-medium" style={{ color: "var(--blocked-fg)" }}>

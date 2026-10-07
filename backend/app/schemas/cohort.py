@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -44,3 +44,19 @@ class MemberOut(BaseModel):
 
 class MemberList(BaseModel):
     items: list[MemberOut]
+
+
+class CohortPlanOut(BaseModel):
+    id: UUID
+    title: str
+    due_date: date | None = None
+    assigned_at: datetime
+    # How many active members currently get this plan ("N members get this").
+    active_member_count: int
+
+
+class CohortPlanList(BaseModel):
+    items: list[CohortPlanOut]
+    total: int
+    limit: int
+    offset: int

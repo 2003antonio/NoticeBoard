@@ -8,8 +8,22 @@ def create_plan(conn, title: str, description, due_date, created_by):
     return plan_repository.create(conn, title, description, due_date, created_by)
 
 
-def list_plans(conn, limit: int, offset: int):
-    return plan_repository.list_plans(conn, limit, offset)
+def list_plans(conn, limit: int, offset: int, not_assigned_cohort=None, q=None):
+    return plan_repository.list_plans(conn, limit, offset, not_assigned_cohort, q)
+
+
+def list_assignments(conn, plan_id, limit: int, offset: int):
+    """Cohorts and direct trainees a plan is assigned to (both bounded)."""
+    _require_plan(conn, plan_id)
+    cohorts, cohorts_total, trainees, trainees_total = plan_repository.assignments(
+        conn, plan_id, limit, offset
+    )
+    return {
+        "cohorts": {"items": cohorts, "total": cohorts_total},
+        "trainees": {"items": trainees, "total": trainees_total},
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 def _require_plan(conn, plan_id):

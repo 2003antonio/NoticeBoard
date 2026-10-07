@@ -54,13 +54,15 @@ Done:
 | GET | /auth/me | logged in | who am I |
 | POST | /auth/change-password | logged in | change my password |
 | POST | /trainees | hr | onboard a trainee (409 if email exists); returns a one-time temporary password |
-| GET | /trainees | hr, manager | list trainees (paginated) |
+| GET | /trainees | hr, manager | list trainees (paginated); optional `not_in_cohort`, `not_assigned_plan` (also hides deactivated) and `q` search, used by the add pickers |
 | POST | /cohorts | hr, manager | create cohort (409 if name exists, any capitalization) |
-| GET | /cohorts | hr, manager | list cohorts with member counts (paginated) |
+| GET | /cohorts | hr, manager | list cohorts with member counts (paginated); optional `not_assigned_plan` and `q` |
+| GET | /cohorts/{id}/plans | manager | plans assigned to one cohort, with due date, assigned date and current member count (paginated) |
 | POST | /cohorts/{id}/members | hr, manager | add a trainee to a cohort (409 if already in it); catches a late joiner up on the cohort's existing plans |
 | GET | /cohorts/{id}/members | hr, manager | list a cohort's members |
 | POST | /plans | manager | create plan (title, optional description and due date) |
-| GET | /plans | manager | list plans (paginated) |
+| GET | /plans | manager | list plans (paginated); optional `not_assigned_cohort` and `q` |
+| GET | /plans/{id}/assignments | manager | who a plan is assigned to: cohorts and directly assigned trainees (both paginated with totals) |
 | GET | /plans/{id} | manager | one plan (404 if missing) |
 | POST | /plans/{id}/assignments | manager | assign to a cohort OR one trainee; notifies recipients in the same transaction |
 | GET | /notifications | any logged-in user | my notifications, newest first, paginated, `unread_only`, `unread_count` |
@@ -78,6 +80,10 @@ Planned:
 | Method | Path | Who | What |
 |---|---|---|---|
 | — | Postman collection | — | final docs |
+
+### "Only offer what is available"
+
+The add pickers never show choices that can only fail. The cohort page's "Add trainee" list hides people already in the cohort (and deactivated users), its "Add plan" list hides plans the cohort already has, and the plan page's assign pickers hide cohorts and trainees that already have the plan. This is done in SQL with `NOT EXISTS` anti-joins, so it stays fast and paginated. It is a convenience only: the database still rejects duplicates (409), which covers two managers acting at once. For these exclusion filters an unknown id excludes nothing, so the picker shows everyone available rather than an empty list.
 
 ### Notification fan-out and the "once" rules
 

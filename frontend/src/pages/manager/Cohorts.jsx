@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
 
 import { createCohort, listCohorts } from "../../api/cohorts";
 import { useLoader } from "../../hooks/useLoader";
@@ -12,7 +10,7 @@ import FormField, { inputClass } from "../../components/FormField";
 import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import { SkeletonTable } from "../../components/Skeleton";
-import Table, { Row } from "../../components/Table";
+import Table, { OpenHint, RowLink, StretchedLink } from "../../components/Table";
 import { useToast } from "../../components/Toast";
 
 const PAGE = 20;
@@ -71,15 +69,13 @@ export default function Cohorts() {
           <>
             <Table head={["Name", "Members", ""]}>
               {list.data.items.map((c) => (
-                <Row key={c.id}>
-                  <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
-                  <td className="px-4 py-3 tnum text-muted">{c.member_count}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link to={`/cohorts/${c.id}`} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
-                      Open <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
+                <RowLink key={c.id} to={`/cohorts/${c.id}`}>
+                  <td className="px-4 py-3">
+                    <StretchedLink to={`/cohorts/${c.id}`}>{c.name}</StretchedLink>
                   </td>
-                </Row>
+                  <td className="px-4 py-3 tnum text-muted">{c.member_count}</td>
+                  <td className="px-4 py-3 text-right"><OpenHint /></td>
+                </RowLink>
               ))}
             </Table>
             <Pagination total={list.data.total} limit={PAGE} offset={offset} onChange={setOffset} />

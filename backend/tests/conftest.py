@@ -81,6 +81,12 @@ def clean_test_data():
         # (plan_assignments.plan_id and notifications.plan_id are ON DELETE
         # CASCADE), which also clears assignments that point at test cohorts.
         conn.execute("DELETE FROM plans WHERE title LIKE 'Test Plan %'")
+        # A test cohort may have a DEMO plan assigned to it; plan_assignments.cohort_id
+        # has no ON DELETE CASCADE, so clear those assignments before the cohort delete.
+        conn.execute(
+            "DELETE FROM plan_assignments WHERE cohort_id IN "
+            "(SELECT id FROM cohorts WHERE name LIKE 'Test Cohort %')"
+        )
         conn.execute("DELETE FROM cohorts WHERE name LIKE 'Test Cohort %'")  # members cascade
         # Safety net: any notification still pointing at a test user would block
         # the user delete below (notifications.user_id has no cascade).
@@ -90,6 +96,13 @@ def clean_test_data():
         )
         conn.execute(
             "DELETE FROM notifications WHERE user_id IN "
+            "(SELECT id FROM users WHERE email LIKE 'test-%@noticeboard.test')"
+        )
+        # A test user may have been added to a cohort that is NOT named
+        # 'Test Cohort %' (so it wasn't cascade-deleted above); that membership
+        # would block the user delete below. Clear any such membership first.
+        conn.execute(
+            "DELETE FROM cohort_members WHERE trainee_id IN "
             "(SELECT id FROM users WHERE email LIKE 'test-%@noticeboard.test')"
         )
         conn.execute("DELETE FROM users WHERE email LIKE 'test-%@noticeboard.test'")

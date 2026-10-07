@@ -74,6 +74,38 @@ class AssignmentOut(BaseModel):
     notified: int
 
 
+class AssignedCohort(BaseModel):
+    id: UUID
+    name: str
+    assigned_at: datetime
+
+
+class AssignedTrainee(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    assigned_at: datetime
+
+
+class _AssignedCohorts(BaseModel):
+    items: list[AssignedCohort]
+    total: int
+
+
+class _AssignedTrainees(BaseModel):
+    items: list[AssignedTrainee]
+    total: int
+
+
+class PlanAssignmentsOut(BaseModel):
+    """Who a plan is assigned to. Both lists are bounded by limit/offset."""
+
+    cohorts: _AssignedCohorts
+    trainees: _AssignedTrainees
+    limit: int
+    offset: int
+
+
 class MyPlanOut(BaseModel):
     id: UUID
     title: str

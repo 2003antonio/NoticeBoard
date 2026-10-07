@@ -1,5 +1,6 @@
 """The ONLY place that writes SQL about plans and their assignments."""
 
+from app.repositories._search import like_contains
 from app.repositories.notification_repository import NEW_PLAN_MESSAGE_SQL
 
 PLAN_COLUMNS = "id, title, description, due_date, created_at"
@@ -18,13 +19,59 @@ def get(conn, plan_id):
     return conn.execute(f"SELECT {PLAN_COLUMNS} FROM plans WHERE id = %s", (plan_id,)).fetchone()
 
 
-def list_plans(conn, limit: int, offset: int):
+def list_plans(conn, limit: int, offset: int, not_assigned_cohort=None, q=None):
+    """List plans, newest first. Optional filters for the "add plan to cohort"
+    picker: not_assigned_cohort hides plans that cohort already has; q is a
+    title contains-search. No filter = behaviour unchanged."""
+    where = ["TRUE"]
+    params = []
+    if not_assigned_cohort is not None:
+        # Anti-join: plan not yet assigned to this cohort (uses the partial
+        # unique index on (plan_id, cohort_id)).
+        where.append("NOT EXISTS (SELECT 1 FROM plan_assignments a WHERE a.cohort_id = %s AND a.plan_id = plans.id)")
+        params.append(not_assigned_cohort)
+    if q:
+        where.append("title ILIKE %s")
+        params.append(like_contains(q))
+
+    clause = " AND ".join(where)
     items = conn.execute(
-        f"SELECT {PLAN_COLUMNS} FROM plans ORDER BY created_at DESC, id LIMIT %s OFFSET %s",
-        (limit, offset),
+        f"SELECT {PLAN_COLUMNS} FROM plans WHERE {clause} ORDER BY created_at DESC, id LIMIT %s OFFSET %s",
+        (*params, limit, offset),
     ).fetchall()
-    total = conn.execute("SELECT count(*) AS n FROM plans").fetchone()["n"]
+    total = conn.execute(f"SELECT count(*) AS n FROM plans WHERE {clause}", tuple(params)).fetchone()["n"]
     return items, total
+
+
+def assignments(conn, plan_id, limit: int, offset: int):
+    """Who a plan is assigned to: its cohorts and its directly-assigned trainees.
+    Both lists are bounded by limit/offset (the trainee list can grow), and each
+    reports its own total. Uses the partial unique indexes on plan_assignments."""
+    cohorts = conn.execute(
+        """SELECT c.id, c.name, a.assigned_at
+           FROM plan_assignments a JOIN cohorts c ON c.id = a.cohort_id
+           WHERE a.plan_id = %s AND a.cohort_id IS NOT NULL
+           ORDER BY lower(c.name), c.id LIMIT %s OFFSET %s""",
+        (plan_id, limit, offset),
+    ).fetchall()
+    cohorts_total = conn.execute(
+        "SELECT count(*) AS n FROM plan_assignments WHERE plan_id = %s AND cohort_id IS NOT NULL",
+        (plan_id,),
+    ).fetchone()["n"]
+
+    trainees = conn.execute(
+        """SELECT u.id, u.name, u.email, a.assigned_at
+           FROM plan_assignments a JOIN users u ON u.id = a.trainee_id
+           WHERE a.plan_id = %s AND a.trainee_id IS NOT NULL
+           ORDER BY lower(u.name), u.id LIMIT %s OFFSET %s""",
+        (plan_id, limit, offset),
+    ).fetchall()
+    trainees_total = conn.execute(
+        "SELECT count(*) AS n FROM plan_assignments WHERE plan_id = %s AND trainee_id IS NOT NULL",
+        (plan_id,),
+    ).fetchone()["n"]
+
+    return cohorts, cohorts_total, trainees, trainees_total
 
 
 def assign_cohort(conn, plan_id, cohort_id):

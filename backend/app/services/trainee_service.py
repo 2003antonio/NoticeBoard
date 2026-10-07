@@ -16,5 +16,5 @@ def onboard(conn, name: str, email: str):
     return trainee, temp_password
 
 
-def list_trainees(conn, limit: int, offset: int):
-    return user_repository.list_trainees(conn, limit, offset)
+def list_trainees(conn, limit: int, offset: int, not_in_cohort=None, not_assigned_plan=None, q=None):
+    return user_repository.list_trainees(conn, limit, offset, not_in_cohort, not_assigned_plan, q)

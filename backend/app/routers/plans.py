@@ -4,7 +4,14 @@ from fastapi import APIRouter, Depends, Query
 
 from app.database import get_db
 from app.dependencies import require_role
-from app.schemas.plan import AssignmentCreate, AssignmentOut, PlanCreate, PlanList, PlanOut
+from app.schemas.plan import (
+    AssignmentCreate,
+    AssignmentOut,
+    PlanAssignmentsOut,
+    PlanCreate,
+    PlanList,
+    PlanOut,
+)
 from app.schemas.report import PlanReportList
 from app.services import plan_service, report_service
 
@@ -20,12 +27,16 @@ def create_plan(body: PlanCreate, user=Depends(manager), conn=Depends(get_db)):
 
 @router.get("", response_model=PlanList)
 def list_plans(
+    not_assigned_cohort: UUID | None = Query(None),
+    q: str | None = Query(None, max_length=100),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     user=Depends(manager),
     conn=Depends(get_db),
 ):
-    items, total = plan_service.list_plans(conn, limit, offset)
+    # not_assigned_cohort hides plans a cohort already has (for its "add plan"
+    # picker); no filter = behaviour unchanged.
+    items, total = plan_service.list_plans(conn, limit, offset, not_assigned_cohort, q)
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
@@ -37,6 +48,18 @@ def get_plan(plan_id: UUID, user=Depends(manager), conn=Depends(get_db)):
 @router.post("/{plan_id}/assignments", response_model=AssignmentOut, status_code=201)
 def assign_plan(plan_id: UUID, body: AssignmentCreate, user=Depends(manager), conn=Depends(get_db)):
     return plan_service.assign(conn, plan_id, body.cohort_id, body.trainee_id)
+
+
+@router.get("/{plan_id}/assignments", response_model=PlanAssignmentsOut)
+def plan_assignments(
+    plan_id: UUID,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user=Depends(manager),
+    conn=Depends(get_db),
+):
+    """Who this plan is assigned to: its cohorts and its direct trainees."""
+    return plan_service.list_assignments(conn, plan_id, limit, offset)
 
 
 @router.get("/{plan_id}/reports", response_model=PlanReportList)

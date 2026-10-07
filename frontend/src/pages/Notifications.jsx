@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { BellOff } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { listNotifications, markRead } from "../api/notifications";
+import { useAuth } from "../context/AuthContext";
 import { useLoader } from "../hooks/useLoader";
 import { emitNotificationsChanged } from "../lib/notificationsBus";
 import { relativeTime } from "../lib/format";
@@ -14,7 +16,18 @@ import Spinner from "../components/Spinner";
 
 const PAGE = 20;
 
+// Where a notification about a plan should lead, by role. Trainees open the plan
+// in their own view; managers open the manager plan page. HR has no plan page,
+// so their notifications stay plain text.
+function planPath(role, planId) {
+  if (!planId) return null;
+  if (role === "trainee") return `/my/plans/${planId}`;
+  if (role === "manager") return `/plans/${planId}`;
+  return null;
+}
+
 export default function Notifications() {
+  const { user } = useAuth();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [offset, setOffset] = useState(0);
   const [markingId, setMarkingId] = useState(null);
@@ -86,7 +99,16 @@ export default function Notifications() {
                     className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.is_read ? "bg-rule" : "bg-accent"}`}
                   />
                   <div>
-                    <p className={`text-sm ${n.is_read ? "text-muted" : "font-medium text-ink"}`}>{n.message}</p>
+                    {planPath(user.role, n.plan_id) ? (
+                      <Link
+                        to={planPath(user.role, n.plan_id)}
+                        className={`text-sm hover:underline ${n.is_read ? "text-muted" : "font-medium text-ink"}`}
+                      >
+                        {n.message}
+                      </Link>
+                    ) : (
+                      <p className={`text-sm ${n.is_read ? "text-muted" : "font-medium text-ink"}`}>{n.message}</p>
+                    )}
                     <p className="kicker mt-0.5">{relativeTime(n.created_at)}</p>
                   </div>
                 </div>

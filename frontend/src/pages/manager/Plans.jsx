@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
 
 import { createPlan, listPlans } from "../../api/plans";
 import { useLoader } from "../../hooks/useLoader";
@@ -13,7 +11,7 @@ import FormField, { inputClass } from "../../components/FormField";
 import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import { SkeletonTable } from "../../components/Skeleton";
-import Table, { Row } from "../../components/Table";
+import Table, { OpenHint, RowLink, StretchedLink } from "../../components/Table";
 import { useToast } from "../../components/Toast";
 
 const PAGE = 20;
@@ -85,16 +83,14 @@ export default function Plans() {
             <>
               <Table head={["Title", "Due date", "Created", ""]}>
                 {list.data.items.map((p) => (
-                  <Row key={p.id}>
-                    <td className="px-4 py-3 font-medium text-ink">{p.title}</td>
+                  <RowLink key={p.id} to={`/plans/${p.id}`}>
+                    <td className="px-4 py-3">
+                      <StretchedLink to={`/plans/${p.id}`}>{p.title}</StretchedLink>
+                    </td>
                     <td className="px-4 py-3 tnum text-muted">{formatDate(p.due_date)}</td>
                     <td className="px-4 py-3 tnum text-muted">{formatDate(p.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link to={`/plans/${p.id}`} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
-                        Open <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </td>
-                  </Row>
+                    <td className="px-4 py-3 text-right"><OpenHint /></td>
+                  </RowLink>
                 ))}
               </Table>
               <Pagination total={list.data.total} limit={PAGE} offset={offset} onChange={setOffset} />
