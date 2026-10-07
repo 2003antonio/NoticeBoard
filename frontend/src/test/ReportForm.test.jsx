@@ -4,17 +4,21 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import TraineePlanDetail from "../pages/trainee/PlanDetail";
+import { ToastProvider } from "../components/Toast";
 import * as myplansApi from "../api/myplans";
 
 vi.mock("../api/myplans");
 
+// ToastProvider is required because submitting a report now fires a toast.
 function renderDetail(plan) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: `/my/plans/${plan.id}`, state: { plan } }]}>
-      <Routes>
-        <Route path="/my/plans/:planId" element={<TraineePlanDetail />} />
-      </Routes>
-    </MemoryRouter>
+    <ToastProvider>
+      <MemoryRouter initialEntries={[{ pathname: `/my/plans/${plan.id}`, state: { plan } }]}>
+        <Routes>
+          <Route path="/my/plans/:planId" element={<TraineePlanDetail />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>
   );
 }
 

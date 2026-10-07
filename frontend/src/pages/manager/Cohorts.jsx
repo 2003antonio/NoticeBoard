@@ -1,19 +1,24 @@
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { createCohort, listCohorts } from "../../api/cohorts";
 import { useLoader } from "../../hooks/useLoader";
 import Button from "../../components/Button";
+import Card from "../../components/Card";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import FormField, { inputClass } from "../../components/FormField";
+import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
-import Spinner from "../../components/Spinner";
-import Table from "../../components/Table";
+import { SkeletonTable } from "../../components/Skeleton";
+import Table, { Row } from "../../components/Table";
+import { useToast } from "../../components/Toast";
 
 const PAGE = 20;
 
 export default function Cohorts() {
+  const toast = useToast();
   const [offset, setOffset] = useState(0);
   const list = useLoader(() => listCohorts(PAGE, offset), [offset]);
 
@@ -30,6 +35,7 @@ export default function Cohorts() {
       setName("");
       setOffset(0);
       list.reload();
+      toast.show("Cohort created");
     } catch (err) {
       setError(err);
     } finally {
@@ -38,50 +44,42 @@ export default function Cohorts() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-800">Cohorts</h1>
+    <div className="space-y-8">
+      <PageHeader kicker="Manager" title="Cohorts" lead="Groups of trainees you can assign plans to all at once." />
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold text-slate-800">Create a cohort</h2>
+      <Card>
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3" noValidate>
-          <div className="flex-1">
-            <FormField label="Name" id="cohort-name" error={error?.fieldError?.("name")}>
-              <input
-                id="cohort-name"
-                required
-                maxLength={100}
-                className={inputClass}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+          <div className="min-w-56 flex-1">
+            <FormField label="New cohort name" id="cohort-name" error={error?.fieldError?.("name")}>
+              <input id="cohort-name" required maxLength={100} className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
             </FormField>
           </div>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" loading={submitting}>
             {submitting ? "Creating..." : "Create"}
           </Button>
         </form>
         <div className="mt-2">
           <ErrorMessage error={error && !error.details?.length ? error : null} />
         </div>
-      </section>
+      </Card>
 
       <section className="space-y-3">
-        {list.loading && <Spinner />}
+        {list.loading && <SkeletonTable rows={4} cols={2} />}
         <ErrorMessage error={list.error} />
         {list.data && list.data.items.length === 0 && <EmptyState>No cohorts yet.</EmptyState>}
         {list.data && list.data.items.length > 0 && (
           <>
             <Table head={["Name", "Members", ""]}>
               {list.data.items.map((c) => (
-                <tr key={c.id}>
-                  <td className="px-4 py-2 font-medium text-slate-800">{c.name}</td>
-                  <td className="px-4 py-2 text-slate-600">{c.member_count}</td>
-                  <td className="px-4 py-2 text-right">
-                    <Link to={`/cohorts/${c.id}`} className="text-blue-600 hover:underline">
-                      Open
+                <Row key={c.id}>
+                  <td className="px-4 py-3 font-medium text-ink">{c.name}</td>
+                  <td className="px-4 py-3 tnum text-muted">{c.member_count}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link to={`/cohorts/${c.id}`} className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
+                      Open <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </td>
-                </tr>
+                </Row>
               ))}
             </Table>
             <Pagination total={list.data.total} limit={PAGE} offset={offset} onChange={setOffset} />

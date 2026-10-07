@@ -25,24 +25,28 @@ export default function PaginatedPicker({
   const canNext = data ? offset + pageSize < data.total : false;
 
   return (
-    <fieldset className="rounded-md border border-slate-300 p-3">
-      <legend className="px-1 text-sm font-medium text-slate-700">{legend}</legend>
+    <fieldset className="rounded-md border border-rule bg-surface p-3">
+      <legend className="kicker px-1">{legend}</legend>
 
       {loading && <Spinner label="Loading options..." />}
       <ErrorMessage error={error} />
 
       {data && data.items.length === 0 && (
-        <p className="py-2 text-sm text-slate-500">Nothing to choose from yet.</p>
+        <p className="py-2 text-sm text-muted">Nothing to choose from yet.</p>
       )}
 
       <div className="space-y-1">
         {data?.items.map((item) => {
           const id = getId(item);
           return (
-            <label key={id} className="flex items-center gap-2 text-sm text-slate-700">
+            <label
+              key={id}
+              className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-ink hover:bg-paper"
+            >
               <input
                 type="radio"
                 name={name}
+                className="accent-[var(--accent)]"
                 checked={selectedId === id}
                 onChange={() => onSelect(id)}
               />
@@ -53,7 +57,7 @@ export default function PaginatedPicker({
       </div>
 
       {data && data.total > pageSize && (
-        <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+        <div className="mt-2 flex items-center justify-between text-xs text-muted">
           <span>
             {offset + 1}–{Math.min(offset + pageSize, data.total)} of {data.total}
           </span>

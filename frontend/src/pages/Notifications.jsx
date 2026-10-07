@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { BellOff } from "lucide-react";
 
 import { listNotifications, markRead } from "../api/notifications";
 import { useLoader } from "../hooks/useLoader";
 import { emitNotificationsChanged } from "../lib/notificationsBus";
-import { formatDateTime } from "../lib/format";
+import { relativeTime } from "../lib/format";
 import Button from "../components/Button";
 import EmptyState from "../components/EmptyState";
 import ErrorMessage from "../components/ErrorMessage";
+import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
 import Spinner from "../components/Spinner";
 
@@ -26,31 +28,34 @@ export default function Notifications() {
     setMarkingId(id);
     try {
       await markRead(id);
-      emitNotificationsChanged(); // let the bell refresh its count
+      emitNotificationsChanged();
       reload();
     } finally {
       setMarkingId(null);
     }
   }
 
-  // Unread first within the page, then newest first (the backend already sorts
-  // by time; this just floats the unread ones to the top for the reader).
-  const items = data
-    ? [...data.items].sort((a, b) => Number(a.is_read) - Number(b.is_read))
-    : [];
+  // Unread first within the page, then as the server sorted (newest first).
+  const items = data ? [...data.items].sort((a, b) => Number(a.is_read) - Number(b.is_read)) : [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-slate-800">Notifications</h1>
-        {data && (
-          <span className="text-sm text-slate-500">{data.unread_count} unread</span>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        kicker="Inbox"
+        title="Notifications"
+        actions={
+          data && (
+            <span className="kicker">
+              <span className="numeral text-accent">{data.unread_count}</span> unread
+            </span>
+          )
+        }
+      />
 
-      <label className="flex items-center gap-2 text-sm text-slate-600">
+      <label className="flex items-center gap-2 text-sm text-muted">
         <input
           type="checkbox"
+          className="accent-[var(--accent)]"
           checked={unreadOnly}
           onChange={(e) => {
             setOffset(0);
@@ -64,31 +69,30 @@ export default function Notifications() {
       <ErrorMessage error={error} />
 
       {data && items.length === 0 && (
-        <EmptyState>{unreadOnly ? "No unread notifications." : "No notifications yet."}</EmptyState>
+        <EmptyState icon={BellOff}>
+          {unreadOnly ? "No unread notifications." : "No notifications yet."}
+        </EmptyState>
       )}
 
       {items.length > 0 && (
         <>
-          <ul className="space-y-2">
+          <ul className="divide-y divide-rule rounded-lg border border-rule bg-surface">
             {items.map((n) => (
-              <li
-                key={n.id}
-                className={
-                  "flex items-start justify-between gap-4 rounded-md border px-4 py-3 " +
-                  (n.is_read ? "border-slate-200 bg-white" : "border-blue-200 bg-blue-50")
-                }
-              >
-                <div>
-                  <p className="text-sm text-slate-800">{n.message}</p>
-                  <p className="text-xs text-slate-500">{formatDateTime(n.created_at)}</p>
+              <li key={n.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  {/* Unread marker: a filled accent dot; read rows get a hollow slot. */}
+                  <span
+                    aria-hidden="true"
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.is_read ? "bg-rule" : "bg-accent"}`}
+                  />
+                  <div>
+                    <p className={`text-sm ${n.is_read ? "text-muted" : "font-medium text-ink"}`}>{n.message}</p>
+                    <p className="kicker mt-0.5">{relativeTime(n.created_at)}</p>
+                  </div>
                 </div>
                 {!n.is_read && (
-                  <Button
-                    variant="secondary"
-                    disabled={markingId === n.id}
-                    onClick={() => handleMarkRead(n.id)}
-                  >
-                    {markingId === n.id ? "..." : "Mark read"}
+                  <Button variant="secondary" loading={markingId === n.id} onClick={() => handleMarkRead(n.id)}>
+                    Mark read
                   </Button>
                 )}
               </li>

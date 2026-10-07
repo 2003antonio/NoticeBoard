@@ -5,9 +5,10 @@ import { useLoader } from "../../hooks/useLoader";
 import { formatDate } from "../../lib/format";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
+import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
-import Spinner from "../../components/Spinner";
-import Table from "../../components/Table";
+import { SkeletonTable } from "../../components/Skeleton";
+import Table, { Row } from "../../components/Table";
 
 const PAGE = 20;
 
@@ -16,10 +17,10 @@ export default function Trainees() {
   const { data, loading, error } = useLoader(() => listTrainees(PAGE, offset), [offset]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-slate-800">Trainees</h1>
+    <div className="space-y-6">
+      <PageHeader kicker="People" title="Trainees" lead="Everyone onboarded into the programme." />
 
-      {loading && <Spinner />}
+      {loading && <SkeletonTable rows={5} cols={4} />}
       <ErrorMessage error={error} />
 
       {data && data.items.length === 0 && <EmptyState>No trainees yet.</EmptyState>}
@@ -28,18 +29,18 @@ export default function Trainees() {
         <>
           <Table head={["Name", "Email", "Status", "Joined"]}>
             {data.items.map((t) => (
-              <tr key={t.id}>
-                <td className="px-4 py-2 font-medium text-slate-800">{t.name}</td>
-                <td className="px-4 py-2 text-slate-600">{t.email}</td>
-                <td className="px-4 py-2">
+              <Row key={t.id}>
+                <td className="px-4 py-3 font-medium text-ink">{t.name}</td>
+                <td className="px-4 py-3 text-muted">{t.email}</td>
+                <td className="px-4 py-3">
                   {t.active ? (
-                    <span className="text-green-700">Active</span>
+                    <span style={{ color: "var(--done-fg)" }}>Active</span>
                   ) : (
-                    <span className="text-slate-500">Deactivated</span>
+                    <span className="text-muted">Deactivated</span>
                   )}
                 </td>
-                <td className="px-4 py-2 text-slate-600">{formatDate(t.created_at)}</td>
-              </tr>
+                <td className="px-4 py-3 tnum text-muted">{formatDate(t.created_at)}</td>
+              </Row>
             ))}
           </Table>
           <Pagination total={data.total} limit={PAGE} offset={offset} onChange={setOffset} />

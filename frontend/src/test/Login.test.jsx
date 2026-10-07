@@ -5,18 +5,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Login from "../pages/Login";
 import { AuthProvider } from "../context/AuthContext";
+import { ThemeProvider } from "../context/ThemeContext";
 import * as authApi from "../api/auth";
 import { ApiError } from "../api/client";
 
 // The API layer is mocked, so these tests never touch the network or backend.
 vi.mock("../api/auth");
 
+// ThemeProvider is required because the login page now includes a theme toggle.
 function renderLogin() {
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Login />
+        </AuthProvider>
+      </ThemeProvider>
     </MemoryRouter>
   );
 }

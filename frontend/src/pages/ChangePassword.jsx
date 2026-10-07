@@ -6,6 +6,7 @@ import { homePath } from "../lib/roles";
 import Button from "../components/Button";
 import ErrorMessage from "../components/ErrorMessage";
 import FormField, { inputClass } from "../components/FormField";
+import ThemeToggle from "../components/ThemeToggle";
 
 // Used both for the forced first-login change and for a voluntary change.
 export default function ChangePassword() {
@@ -25,17 +26,13 @@ export default function ChangePassword() {
     e.preventDefault();
     setError(null);
     setLocalError(null);
-
-    // Friendly browser-side check before we bother the server.
     if (next !== confirm) {
       setLocalError("The new passwords do not match.");
       return;
     }
-
     setSubmitting(true);
     try {
       await changePassword(current, next);
-      // The flag is cleared now; go to the role's home.
       navigate(homePath(user.role), { replace: true });
     } catch (err) {
       setError(err);
@@ -44,16 +41,20 @@ export default function ChangePassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-1 text-xl font-semibold text-slate-800">Set a new password</h1>
-        <p className="mb-5 text-sm text-slate-500">
+    <div className="min-h-screen bg-paper">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
+        <p className="kicker mb-2">Account</p>
+        <h1 className="font-display text-3xl font-semibold text-ink">Set a new password</h1>
+        <p className="mt-2 text-sm text-muted">
           {forced
             ? "Your account uses a temporary password. Choose a new one to continue."
             : "Update the password for your account."}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
           <FormField label={forced ? "Temporary password" : "Current password"} id="current">
             <input
               id="current"
@@ -93,7 +94,7 @@ export default function ChangePassword() {
 
           <ErrorMessage error={error} />
 
-          <Button type="submit" disabled={submitting} className="w-full">
+          <Button type="submit" loading={submitting} className="w-full">
             {submitting ? "Saving..." : "Save new password"}
           </Button>
         </form>

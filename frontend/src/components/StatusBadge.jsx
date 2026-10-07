@@ -1,23 +1,23 @@
-// A coloured label for a pair/report status. Colour is a convenience; the text
-// always says the status too, so it does not rely on colour alone.
-const STYLES = {
-  done: "bg-green-100 text-green-800",
-  on_track: "bg-blue-100 text-blue-800",
-  blocked: "bg-red-100 text-red-800",
-  no_report: "bg-slate-100 text-slate-600",
-};
-
+// A status pill. Colour is backed by a text label and a small dot, so meaning
+// never rests on colour alone. The tint/foreground pairs live in index.css as
+// CSS variables (one set per theme), each checked for 4.5:1 contrast.
 const LABELS = {
   done: "Done",
   on_track: "On track",
   blocked: "Blocked",
   no_report: "No report",
+  overdue: "Overdue",
+  missing: "Missing",
 };
 
 export default function StatusBadge({ status }) {
-  const style = STYLES[status] || "bg-slate-100 text-slate-600";
+  const key = LABELS[status] ? status : "no_report";
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}>
+    <span
+      className="badge"
+      style={{ backgroundColor: `var(--${key}-bg)`, color: `var(--${key}-fg)` }}
+    >
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "currentColor" }} />
       {LABELS[status] || status}
     </span>
   );

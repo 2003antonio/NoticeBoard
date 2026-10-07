@@ -1,10 +1,156 @@
 @import "tailwindcss";
 
-/* App-wide defaults. Neutral slate background with a blue accent. */
-:root {
-  color-scheme: light;
+/* Fonts, self-hosted via @fontsource (no external Google calls).
+   - Fraunces (display serif): app name, page titles, big dashboard numerals.
+     "standard" = optical-size + weight axes only (we skip SOFT/WONK). The file
+     is split by unicode-range, so only the latin subset downloads for English.
+   - IBM Plex Sans (body/UI) and Plex Mono (data labels, table numerals): a
+     cohesive superfamily with true tabular figures -- the "ledger" register.
+   Only the weights we actually use are imported. */
+@import "@fontsource-variable/fraunces/standard.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+
+/* Let `dark:` utilities key off our data-theme attribute if ever needed; most
+   theming is done through the CSS variables below, which swap automatically. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Expose our semantic tokens to Tailwind so bg-paper / text-ink / border-rule /
+   bg-accent resolve to the variables and re-colour instantly when the theme or
+   role changes. */
+@theme {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
+/* ---- Light theme (warm paper + warm ink). Default accent is a neutral ink,
+   used on the login page where there is no role yet. ---- */
+:root {
+  color-scheme: light;
+
+  --paper: #f3efe6;
+  --surface: #fbf8f1;
+  --ink: #211c15;
+  --muted: #655d4c; /* darkened from first draft to clear 4.5:1 on paper */
+  --rule: #ded6c6;
+
+  --accent: #2b2722; /* neutral ink accent (no role / login) */
+  --accent-contrast: #f7f4ec;
+
+  /* Status: a tinted background + an accessible foreground, both >= 4.5:1. */
+  --done-bg: #e3f0e7;        --done-fg: #176039;
+  --on_track-bg: #e2eafb;    --on_track-fg: #1e4fb0;
+  --blocked-bg: #f7e1e4;     --blocked-fg: #a62036;
+  --no_report-bg: #ece8de;   --no_report-fg: #595140;
+  --overdue-bg: #f6e8cf;     --overdue-fg: #855212;
+  --missing-bg: #f8e3d5;     --missing-fg: #9d3a11;
+}
+
+/* ---- Dark theme (deep warm espresso, not pure black, not blue-gray). ---- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #16130e;
+  --surface: #211c15;
+  --ink: #ece5d6;
+  --muted: #a89d86; /* lightened to clear 4.5:1 on espresso */
+  --rule: #342d22;
+
+  --accent: #c9c0ae; /* neutral light accent on dark (login) */
+  --accent-contrast: #16130e;
+
+  --done-bg: #18271e;        --done-fg: #74d3a1;
+  --on_track-bg: #1b2740;    --on_track-fg: #93b8ff;
+  --blocked-bg: #351c21;     --blocked-fg: #f2909f;
+  --no_report-bg: #2a251d;   --no_report-fg: #bcb199;
+  --overdue-bg: #322615;     --overdue-fg: #ecbe6a;
+  --missing-bg: #352115;     --missing-fg: #f0a06c;
+}
+
+/* ---- Role accents. Set via data-role on the app root; they colour the nav
+   highlight, the masthead rule and primary buttons so you can tell at a glance
+   who is signed in. Every accent is checked for 4.5:1 against its text. ---- */
+:root[data-role="trainee"] { --accent: #11736b; --accent-contrast: #ffffff; }
+:root[data-role="hr"]      { --accent: #8a3a62; --accent-contrast: #ffffff; }
+:root[data-role="manager"] { --accent: #3f46a6; --accent-contrast: #ffffff; }
+
+:root[data-theme="dark"][data-role="trainee"] { --accent: #5cc9be; --accent-contrast: #0c1a18; }
+:root[data-theme="dark"][data-role="hr"]      { --accent: #e59ec0; --accent-contrast: #2a0f1e; }
+:root[data-theme="dark"][data-role="manager"] { --accent: #a6abf7; --accent-contrast: #15173a; }
+
 body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Big numerals use IBM Plex Mono. We verified that the Fraunces build does NOT
+   expose tabular figures (its digits are proportional: "111" is far narrower
+   than "000"), which would make the count-up animation jiggle and misalign
+   stat columns. Plex Mono's figures are tabular by construction, so numbers
+   hold a steady width -- the right call per the brief's fallback. Fraunces is
+   still the display face for the app name and page titles. */
+.numeral {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Small uppercase mono kicker/eyebrow label. Kept at 12px minimum for legibility. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Tabular figures for data columns and stats set in the sans/mono faces. */
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Status badge: tint + accessible foreground, always paired with a text label. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* A gentle entrance for page content. Disabled entirely under reduced motion. */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

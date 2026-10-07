@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import { listNotifications } from "../api/notifications";
@@ -15,13 +16,12 @@ export default function NotificationBell() {
     // limit=1: we only need the unread_count field, not the rows themselves.
     listNotifications(true, 1, 0)
       .then((data) => active && setCount(data.unread_count))
-      .catch(() => {}); // the bell is non-critical; never break the shell over it
+      .catch(() => {});
     return () => {
       active = false;
     };
   }, [location.pathname]);
 
-  // Also refresh immediately after a mark-as-read happens elsewhere.
   useEffect(() => {
     return onNotificationsChanged(() => {
       listNotifications(true, 1, 0)
@@ -33,12 +33,12 @@ export default function NotificationBell() {
   return (
     <Link
       to="/notifications"
-      className="relative rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100"
+      className="relative rounded-md border border-rule bg-surface p-2 text-ink transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       aria-label={`Notifications${count ? `, ${count} unread` : ""}`}
     >
-      <span aria-hidden="true" className="text-lg">🔔</span>
+      <Bell className="h-4 w-4" />
       {count > 0 && (
-        <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-blue-600 px-1.5 text-center text-xs font-semibold text-white">
+        <span className="numeral absolute -right-1.5 -top-1.5 min-w-[18px] rounded-full bg-accent px-1 text-center text-[11px] font-semibold leading-4 text-accent-contrast">
           {count}
         </span>
       )}

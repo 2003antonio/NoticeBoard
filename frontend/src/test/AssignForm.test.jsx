@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AssignForm from "../pages/manager/AssignForm";
+import { ToastProvider } from "../components/Toast";
 import * as plansApi from "../api/plans";
 import * as cohortsApi from "../api/cohorts";
 import * as traineesApi from "../api/trainees";
@@ -10,6 +11,9 @@ import * as traineesApi from "../api/trainees";
 vi.mock("../api/plans");
 vi.mock("../api/cohorts");
 vi.mock("../api/trainees");
+
+// ToastProvider is required because a successful assignment now fires a toast.
+const renderForm = (props) => render(<ToastProvider><AssignForm {...props} /></ToastProvider>);
 
 describe("Assign form", () => {
   beforeEach(() => {
@@ -26,7 +30,7 @@ describe("Assign form", () => {
   });
 
   it("refuses to submit with neither a cohort nor a trainee", async () => {
-    render(<AssignForm planId="p1" />);
+    renderForm({ planId: "p1" });
     await userEvent.click(screen.getByRole("button", { name: /assign plan/i }));
 
     expect(await screen.findByText(/choose a cohort or a trainee/i)).toBeInTheDocument();
@@ -34,7 +38,7 @@ describe("Assign form", () => {
   });
 
   it("refuses to submit with both a cohort and a trainee selected", async () => {
-    render(<AssignForm planId="p1" />);
+    renderForm({ planId: "p1" });
     // Wait for both pickers to load their options.
     await userEvent.click(await screen.findByLabelText(/Cohort One/i));
     await userEvent.click(await screen.findByLabelText(/Trainee One/i));

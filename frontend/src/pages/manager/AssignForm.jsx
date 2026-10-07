@@ -6,25 +6,24 @@ import { listTrainees } from "../../api/trainees";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import PaginatedPicker from "../../components/PaginatedPicker";
+import { useToast } from "../../components/Toast";
 
 // Assign a plan to EITHER a cohort OR a single trainee. Both pickers are shown;
-// we enforce "exactly one" on submit, mirroring the backend's rule. The pickers
-// page through the server, so a large org never loads every cohort or trainee.
+// we enforce "exactly one" on submit, mirroring the backend. The pickers page
+// through the server, so a large org never loads every cohort or trainee.
 export default function AssignForm({ planId, onAssigned }) {
+  const toast = useToast();
   const [cohortId, setCohortId] = useState(null);
   const [traineeId, setTraineeId] = useState(null);
   const [formError, setFormError] = useState(null);
   const [apiError, setApiError] = useState(null);
-  const [notified, setNotified] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError(null);
     setApiError(null);
-    setNotified(null);
 
-    // Exactly one target. Both or neither is a mistake we catch before calling.
     if (cohortId && traineeId) {
       setFormError("Choose a cohort OR a trainee, not both.");
       return;
@@ -38,9 +37,9 @@ export default function AssignForm({ planId, onAssigned }) {
     try {
       const body = cohortId ? { cohort_id: cohortId } : { trainee_id: traineeId };
       const result = await assignPlan(planId, body);
-      setNotified(result.notified);
       setCohortId(null);
       setTraineeId(null);
+      toast.show(`Assigned — notified ${result.notified} ${result.notified === 1 ? "person" : "people"}`);
       if (onAssigned) onAssigned();
     } catch (err) {
       setApiError(err);
@@ -72,22 +71,16 @@ export default function AssignForm({ planId, onAssigned }) {
         />
       </div>
 
-      <p className="text-xs text-slate-500">Pick exactly one: a cohort or a single trainee.</p>
+      <p className="text-xs text-muted">Pick exactly one: a cohort or a single trainee.</p>
 
       {formError && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm font-medium" style={{ color: "var(--blocked-fg)" }}>
           {formError}
         </p>
       )}
       <ErrorMessage error={apiError} />
 
-      {notified !== null && (
-        <p className="rounded-md bg-green-50 px-4 py-2 text-sm text-green-800">
-          Assigned. Notified {notified} {notified === 1 ? "person" : "people"}.
-        </p>
-      )}
-
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" loading={submitting}>
         {submitting ? "Assigning..." : "Assign plan"}
       </Button>
     </form>
