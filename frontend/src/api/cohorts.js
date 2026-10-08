@@ -10,6 +10,9 @@ export const listCohorts = (limit = 50, offset = 0, { notAssignedPlan, q } = {})
 
 export const createCohort = (name) => api.post("/cohorts", { name });
 
+// One cohort for its detail page header: { id, name, created_at, active_member_count }.
+export const getCohort = (cohortId) => api.get(`/cohorts/${cohortId}`);
+
 export const listMembers = (cohortId) => api.get(`/cohorts/${cohortId}/members`);
 
 // Adds a trainee and returns the updated member list.

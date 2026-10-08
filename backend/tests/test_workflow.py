@@ -16,6 +16,35 @@ def ids(body):
     return {i["id"] for i in body["items"]}
 
 
+# ---------- GET /cohorts/{id} (cohort detail header) ----------
+
+def test_get_cohort_permissions(client, hr_headers, manager_headers, trainee_headers):
+    cohort = new_cohort(client, manager_headers)
+    url = f"/cohorts/{cohort['id']}"
+    assert client.get(url, headers=manager_headers).status_code == 200
+    assert client.get(url, headers=hr_headers).status_code == 200  # staff: hr + manager
+    assert client.get(url, headers=trainee_headers).status_code == 403
+    assert client.get(url).status_code == 401
+
+
+def test_get_cohort_unknown_is_404_bad_id_is_400(client, manager_headers):
+    assert client.get(f"/cohorts/{uuid.uuid4()}", headers=manager_headers).status_code == 404
+    assert client.get("/cohorts/not-a-uuid", headers=manager_headers).status_code == 400
+
+
+def test_get_cohort_returns_name_and_active_member_count(client, hr_headers, manager_headers):
+    cohort = new_cohort(client, manager_headers)
+    members = [new_trainee(client, hr_headers) for _ in range(3)]
+    for m in members:
+        add_member(client, manager_headers, cohort["id"], m["id"])
+    deactivate(members[0]["id"])  # count must exclude deactivated
+
+    body = client.get(f"/cohorts/{cohort['id']}", headers=manager_headers).json()
+    assert body["id"] == cohort["id"]
+    assert body["name"] == cohort["name"]
+    assert body["active_member_count"] == 2
+
+
 # ---------- permissions on the new endpoints ----------
 
 def test_cohort_plans_is_manager_only(client, hr_headers, manager_headers, trainee_headers):

@@ -7,6 +7,7 @@ from app.dependencies import require_role
 from app.schemas.cohort import (
     AddMember,
     CohortCreate,
+    CohortDetailOut,
     CohortList,
     CohortOut,
     CohortPlanList,
@@ -38,6 +39,12 @@ def list_cohorts(
     # page's "assign to a cohort" picker); no filter = behaviour unchanged.
     items, total = cohort_service.list_cohorts(conn, limit, offset, not_assigned_plan, q)
     return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/{cohort_id}", response_model=CohortDetailOut)
+def get_cohort(cohort_id: UUID, user=Depends(staff), conn=Depends(get_db)):
+    """One cohort with its active member count, for the detail page header."""
+    return cohort_service.get_cohort(conn, cohort_id)
 
 
 @router.get("/{cohort_id}/plans", response_model=CohortPlanList)

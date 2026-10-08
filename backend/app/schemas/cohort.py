@@ -30,6 +30,16 @@ class CohortList(BaseModel):
     offset: int
 
 
+class CohortDetailOut(BaseModel):
+    """One cohort, for its detail page. active_member_count excludes deactivated
+    users (it's how many people actually get a plan assigned to the cohort)."""
+
+    id: UUID
+    name: str
+    created_at: datetime
+    active_member_count: int
+
+
 class AddMember(BaseModel):
     trainee_id: UUID
 

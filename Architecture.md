@@ -57,6 +57,7 @@ Done:
 | GET | /trainees | hr, manager | list trainees (paginated); optional `not_in_cohort`, `not_assigned_plan` (also hides deactivated) and `q` search, used by the add pickers |
 | POST | /cohorts | hr, manager | create cohort (409 if name exists, any capitalization) |
 | GET | /cohorts | hr, manager | list cohorts with member counts (paginated); optional `not_assigned_plan` and `q` |
+| GET | /cohorts/{id} | hr, manager | one cohort (name, created_at) with its active member count (404 if missing) |
 | GET | /cohorts/{id}/plans | manager | plans assigned to one cohort, with due date, assigned date and current member count (paginated) |
 | POST | /cohorts/{id}/members | hr, manager | add a trainee to a cohort (409 if already in it); catches a late joiner up on the cohort's existing plans |
 | GET | /cohorts/{id}/members | hr, manager | list a cohort's members |

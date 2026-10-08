@@ -7,6 +7,7 @@ import { useLoader } from "../../hooks/useLoader";
 import { formatDate, formatDateTime } from "../../lib/format";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import FormField, { inputClass } from "../../components/FormField";
@@ -51,15 +52,12 @@ export default function TraineePlanDetail() {
   const [formError, setFormError] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // "Done" is final, so we confirm it before calling the API.
+  const [confirmingDone, setConfirmingDone] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setFormError(null);
+  // The actual network submit, shared by the normal path and the done-confirm.
+  async function doSubmit() {
     setApiError(null);
-    if (status === "blocked" && notes.trim() === "") {
-      setFormError("Please say what is blocking you.");
-      return;
-    }
     setSubmitting(true);
     try {
       await submitReport(planId, status, notes.trim() || null);
@@ -74,6 +72,23 @@ export default function TraineePlanDetail() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setFormError(null);
+    setApiError(null);
+    // Blocked must have notes -- checked first, as before.
+    if (status === "blocked" && notes.trim() === "") {
+      setFormError("Please say what is blocking you.");
+      return;
+    }
+    // Done is irreversible: confirm before submitting. Other statuses go straight through.
+    if (status === "done") {
+      setConfirmingDone(true);
+      return;
+    }
+    doSubmit();
   }
 
   if (planLoad.loading) return <Spinner />;
@@ -145,6 +160,22 @@ export default function TraineePlanDetail() {
               </Button>
             </form>
           </Card>
+        )}
+
+        {confirmingDone && (
+          <ConfirmDialog
+            title="Mark this plan as done?"
+            confirmLabel="Mark as done"
+            cancelLabel="Go back"
+            onConfirm={() => {
+              setConfirmingDone(false);
+              doSubmit();
+            }}
+            onCancel={() => setConfirmingDone(false)}
+          >
+            Marking this plan as done <strong>cannot be undone</strong>, and no further updates can
+            be added afterwards.
+          </ConfirmDialog>
         )}
       </section>
 

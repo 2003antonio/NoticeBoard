@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
-import { addMember, getCohortPlans, listMembers } from "../../api/cohorts";
+import { addMember, getCohort, getCohortPlans, listMembers } from "../../api/cohorts";
 import { assignPlan, listPlans } from "../../api/plans";
 import { listTrainees } from "../../api/trainees";
 import { useLoader } from "../../hooks/useLoader";
@@ -21,13 +21,27 @@ export default function CohortDetail() {
   const { cohortId } = useParams();
   const toast = useToast();
 
-  // Bumped after a successful add so both loaders refetch deterministically
+  // Bumped after a successful add so the loaders refetch deterministically
   // (more reliable than calling reload() across the AddPanel callback boundary).
   const [reloadKey, setReloadKey] = useState(0);
+  // The cohort itself, for the page title and its active member count.
+  const cohort = useLoader(() => getCohort(cohortId), [cohortId, reloadKey]);
   const members = useLoader(() => listMembers(cohortId), [cohortId, reloadKey]);
 
   const [planOffset, setPlanOffset] = useState(0);
   const plans = useLoader(() => getCohortPlans(cohortId, PAGE, planOffset), [cohortId, planOffset, reloadKey]);
+
+  // A missing cohort (404) gets a friendly dead-end instead of broken sections.
+  if (cohort.error) {
+    return (
+      <div className="space-y-4">
+        <Link to="/cohorts" className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to cohorts
+        </Link>
+        <EmptyState>This cohort could not be found. It may have been removed.</EmptyState>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
@@ -36,7 +50,16 @@ export default function CohortDetail() {
           <ArrowLeft className="h-3.5 w-3.5" /> Back to cohorts
         </Link>
         <div className="kicker">Cohort</div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Cohort detail</h1>
+        {cohort.loading ? (
+          <div className="h-9 w-56 animate-pulse rounded bg-rule" aria-hidden="true" />
+        ) : (
+          <>
+            <h1 className="font-display text-3xl font-semibold text-ink">{cohort.data.name}</h1>
+            <p className="text-sm text-muted">
+              <span className="tnum">{cohort.data.active_member_count}</span> active members
+            </p>
+          </>
+        )}
       </div>
 
       {/* --- Members --- */}
@@ -54,7 +77,7 @@ export default function CohortDetail() {
             emptyMessage="Everyone is already in this cohort."
             onConfirm={async (traineeId) => {
               await addMember(cohortId, traineeId);
-              toast.show("Trainee added to cohort");
+              toast.show(cohort.data ? `Added to ${cohort.data.name}` : "Trainee added to cohort");
               setReloadKey((k) => k + 1);
             }}
           />

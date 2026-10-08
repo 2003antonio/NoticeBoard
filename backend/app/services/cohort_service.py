@@ -45,6 +45,12 @@ def add_member(conn, cohort_id, trainee_id) -> None:
     cohort_repository.notify_existing_plans(conn, cohort_id, trainee_id)
 
 
+def get_cohort(conn, cohort_id):
+    """One cohort plus its active member count, for the detail page header."""
+    cohort = _require_cohort(conn, cohort_id)
+    return {**dict(cohort), "active_member_count": cohort_repository.active_member_count(conn, cohort_id)}
+
+
 def list_members(conn, cohort_id):
     _require_cohort(conn, cohort_id)
     return cohort_repository.list_members(conn, cohort_id)
