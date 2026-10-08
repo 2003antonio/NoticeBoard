@@ -2,6 +2,12 @@
 
 A full-stack platform for an EdTech organization that replaces scattered 1:1 messages and Excel sheets with automated notifications, progress reporting, and a manager dashboard.
 
+## Live demo
+
+http://antoniomartinez-noticeboard.s3-website-us-east-1.amazonaws.com
+
+Use the demo logins listed below (shared demo data only). Hosted on AWS: S3 (React site), API Gateway + Lambda (FastAPI), and Neon Postgres.
+
 ## Who uses it
 
 | Role | What they do |
@@ -21,6 +27,7 @@ A full-stack platform for an EdTech organization that replaces scattered 1:1 mes
 
 - Backend: Python, FastAPI, PostgreSQL (psycopg)
 - Frontend: React
+- Hosting: AWS S3, API Gateway, Lambda; Neon Postgres
 - Auth: JWT, bcrypt password hashing, role checks
 - Notifications: in-app only
 - Tests: pytest
@@ -55,7 +62,7 @@ Other commands: `npm test` (Vitest unit tests), `npm run build` (static files in
 3. For a deployed copy, import `NoticeBoardTracker.aws.postman_environment.json` and set `baseUrl` to your API address.
 4. Needs the demo accounts, so load `seed.sql` first. 49 requests, 56 checks.
 
-## Demo logins (dev seed data only)
+## Demo logins (demo seed data only)
 
 | Role | Email | Password |
 |---|---|---|
@@ -76,4 +83,5 @@ Other commands: `npm test` (Vitest unit tests), `npm run build` (static files in
 - [x] React frontend (editorial design, light and dark)
 - [x] Smart pickers and clickable rows (cohort plans, only-available choices)
 - [x] Postman collection
+- [x] Deployed to AWS (S3 + API Gateway + Lambda)
 - [ ] Architecture.md final
