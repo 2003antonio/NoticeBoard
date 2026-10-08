@@ -48,6 +48,13 @@ npm run dev                   # opens http://localhost:5173
 
 Other commands: `npm test` (Vitest unit tests), `npm run build` (static files into `frontend\dist`), `npm run preview` (serve the built files).
 
+## Try the API in Postman
+
+1. In Postman, import `postmanscript/NoticeBoardTracker.postman_collection.json` and `postmanscript/NoticeBoardTracker.local.postman_environment.json`, then pick the environment (top right).
+2. Start the backend, then run the collection with the Collection Runner. Run it once in order (folders 00 to 06): it logs in, onboards a trainee, builds a cohort and plan, walks the trainee's first login and reports, checks the dashboard, and ends with security checks (expect 401, 403, 400 and 409 where noted).
+3. For a deployed copy, import `NoticeBoardTracker.aws.postman_environment.json` and set `baseUrl` to your API address.
+4. Needs the demo accounts, so load `seed.sql` first. 49 requests, 56 checks.
+
 ## Demo logins (dev seed data only)
 
 | Role | Email | Password |
@@ -68,5 +75,5 @@ Other commands: `npm test` (Vitest unit tests), `npm run build` (static files in
 - [x] Manager dashboard
 - [x] React frontend (editorial design, light and dark)
 - [x] Smart pickers and clickable rows (cohort plans, only-available choices)
-- [ ] Postman collection
+- [x] Postman collection
 - [ ] Architecture.md final
