@@ -10,12 +10,22 @@ def get_pool() -> ConnectionPool:
     """One shared pool of database connections, created on first use."""
     global _pool
     if _pool is None:
+        settings = get_settings()
         _pool = ConnectionPool(
-            get_settings().database_url,
-            min_size=1,
-            max_size=10,
+            settings.database_url,
+            min_size=settings.db_pool_min_size,
+            max_size=settings.db_pool_max_size,
             timeout=5,  # fail fast if the database is unreachable
-            kwargs={"row_factory": dict_row},
+            # Test a connection before handing it out. On Lambda the process is frozen
+            # between requests and the database may have closed idle connections, so
+            # this quietly swaps a dead one for a fresh one instead of failing a request.
+            check=ConnectionPool.check_connection,
+            kwargs={
+                "row_factory": dict_row,
+                # Hosted databases (Neon, RDS Proxy) often sit behind a pooler that
+                # cannot keep prepared statements; turning them off is safe everywhere.
+                "prepare_threshold": None,
+            },
             open=False,
         )
         _pool.open()

@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     login_rate_limit: int = 10
     login_rate_window_seconds: int = 900
     cors_origins: str = "http://localhost:5173"
+    # Connection pool size. A normal server keeps up to 10 connections open. On AWS
+    # Lambda every running copy of the function has its own pool, so we keep each
+    # one tiny (for example 0 to 2) to avoid exhausting the database's connection limit.
+    db_pool_min_size: int = Field(default=1, ge=0)
+    db_pool_max_size: int = Field(default=10, ge=1)
 
     @property
     def cors_origin_list(self) -> list[str]:

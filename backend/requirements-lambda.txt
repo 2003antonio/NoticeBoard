@@ -1,0 +1,7 @@
+# What the deployed Lambda needs (no uvicorn, no test tools).
+fastapi>=0.115
+mangum>=0.19
+psycopg[binary,pool]>=3.2
+pyjwt>=2.9
+bcrypt>=4.2
+pydantic-settings>=2.5
